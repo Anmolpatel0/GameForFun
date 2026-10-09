@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head> 
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amo Games Arena - Premier 2-Player Local Hub</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --p1-color: #00f0ff;
+      --p1-glow: rgba(0, 240, 255, 0.4);
+      --p2-color: #ff007f;
+      --p2-glow: rgba(255, 0, 127, 0.4);
+      --bg-dark: #0d0f18;
+      --card-bg: rgba(22, 27, 46, 0.7);
+      --border-glass: rgba(255, 255, 255, 0.1);
+    }
+
+    * {
+      font-family: 'Inter', sans-serif;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    h1, h2, h3, .font-heading {
+      font-family: 'Outfit', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(0, 240, 255, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(255, 0, 127, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(100, 50, 255, 0.05) 0%, transparent 60%);
+      min-height: 100vh;
+      color: #e2e8f0;
+      overflow-x: hidden;
+    }
+
+    /* Glassmorphism Styles */
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-glass);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    .glass-button {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass-button:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-2px);
+    }
+
+    .glass-button:active {
+      transform: translateY(0);
+    }
+
+    /* Player Highlights */
+    .p1-turn {
+      border-color: var(--p1-color) !important;
+      box-shadow: 0 0 20px var(--p1-glow) !important;
+    }
+
+    .p2-turn {
+      border-color: var(--p2-color) !important;
+      box-shadow: 0 0 20px var(--p2-glow) !important;
+    }
+
+    .text-p1 { color: var(--p1-color); }
+    .text-p2 { color: var(--p2-color); }
+    .bg-p1 { background-color: var(--p1-color); }
+    .bg-p2 { background-color: var(--p2-color); }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    /* Chess Board Custom Design */
+    .chess-square-light {
+      background-color: #2a324d;
+    }
+    .chess-square-dark {
+      background-color: #1a1f36;
+    }
+    .chess-square-selected {
+      background-color: rgba(0, 240, 255, 0.35) !important;
+      box-shadow: inset 0 0 10px var(--p1-color);
+    }
+    .chess-square-lastmove {
+      background-color: rgba(255, 215, 0, 0.2) !important;
+    }
+    .chess-square-check {
+      background-color: rgba(255, 0, 80, 0.5) !important;
+      animation: pulseCheck 1s infinite alternate;
+    }
+
+    @keyframes pulseCheck {
+      0% { box-shadow: inset 0 0 5px #ff0055; }
+      100% { box-shadow: inset 0 0 20px #ff0055; }
+    }
+
+    /* Move indicator dot */
+    .move-dot {
+      width: 28%;
+      height: 28%;
+      background-color: rgba(0, 240, 255, 0.6);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--p1-color);
+    }
+    .capture-ring {
+      width: 85%;
+      height: 85%;
+      border: 3px solid rgba(255, 0, 127, 0.7);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--p2-color);
+    }
+
+    /* Piece SVG scaling */
+    .chess-piece {
+      transition: transform 0.15s ease-out;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+    }
+    .chess-piece:hover {
+      transform: scale(1.1);
+    }
+
+    /* Connect 4 Token Animation */
+    @keyframes dropToken {
+      0% { transform: translateY(-300px); opacity: 0.5; }
+      70% { transform: translateY(10px); }
+      85% { transform: translateY(-5px); }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+    .token-drop {
+      animation: dropToken 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    }
+
+    /* Glowing Dots and Boxes Lines */
+    .line-h, .line-v {
+      transition: background-color 0.2s, box-shadow 0.2s;
+    }
+    .line-h:not(.claimed):hover, .line-v:not(.claimed):hover {
+      background-color: rgba(255, 255, 255, 0.3) !important;
+      cursor: pointer;
+    }
+    .line-p1 {
+      background-color: var(--p1-color) !important;
+      box-shadow: 0 0 10px var(--p1-color);
+    }
+    .line-p2 {
+      background-color: var(--p2-color) !important;
+      box-shadow: 0 0 10px var(--p2-color);
+    }
+
+    /* Animations */
+    @keyframes popIn {
+      0% { transform: scale(0.8); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop {
+      animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen justify-between p-2 sm:p-4 md:p-6 text-slate-100">
+
+  <!-- Top Navigation Header -->
+  <header class="w-full max-w-6xl mx-auto mb-4">
+    <div class="glass-card rounded-2xl p-4 flex flex-col md:flex-row justify-between items-center gap-4">
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-pink-500 flex items-center justify-center font-heading font-black text-2xl text-slate-900 shadow-lg shadow-cyan-500/20">
+          A
+        </div>
+        <div>
+          <h1 class="font-heading font-extrabold text-2xl tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-300 to-pink-500">
+            AMO GAMES ARENA
+          </h1>
+          <p class="text-xs text-slate-400 tracking-wider uppercase font-semibold">Premier 2-Player Pass & Play Hub</p>
+        </div>
+      </div>
+
+      <!-- Game Selector Navigation Tabs -->
+      <nav class="flex flex-wrap justify-center gap-1.5 sm:gap-2 bg-slate-900/60 p-1.5 rounded-xl border border-slate-800/80">
+        <button onclick="switchGame('chess')" id="tab-chess" class="game-tab px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all duration-200">
+          <span>♟️</span> Chess
+        </button>
+        <button onclick="switchGame('tictactoe')" id="tab-tictactoe" class="game-tab px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all duration-200">
+          <span>❌</span> Tic-Tac-Toe
+        </button>
+        <button onclick="switchGame('connect4')" id="tab-connect4" class="game-tab px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all duration-200">
+          <span>🟡</span> Connect Four
+        </button>
+        <button onclick="switchGame('dots')" id="tab-dots" class="game-tab px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all duration-200">
+          <span>🔳</span> Dots & Boxes
+        </button>
+        <button onclick="switchGame('gomoku')" id="tab-gomoku" class="game-tab px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all duration-200">
+          <span>⚪</span> Gomoku
+        </button>
+      </nav>
+
+      <!-- Global Controls -->
+      <div class="flex items-center gap-2">
+        <button id="sound-btn" onclick="toggleSound()" class="glass-button p-2.5 rounded-xl text-slate-300 hover:text-white" title="Toggle Sound">
+          <svg id="sound-icon-on" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+          <svg id="sound-icon-off" class="w-5 h-5 hidden text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>
+        </button>
+        <button onclick="resetCurrentGame()" class="glass-button px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-200 hover:text-cyan-400 flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          Reset
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Game Layout Container -->
+  <main class="w-full max-w-6xl mx-auto flex-1 flex flex-col gap-4">
+    
+    <!-- Player Banner & Stats Bar -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+      <!-- Player 1 Card -->
+      <div id="p1-card" class="glass-card rounded-2xl p-3 sm:p-4 flex items-center justify-between transition-all duration-300">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-cyan-500/20 border border-cyan-400/50 flex items-center justify-center font-bold text-cyan-400 text-lg shadow-md shadow-cyan-500/20">
+            P1
+          </div>
+          <div>
+            <input type="text" id="p1-name" value="Player 1" onchange="updatePlayerNames()" class="bg-transparent font-heading font-bold text-base text-cyan-400 focus:outline-none border-b border-transparent focus:border-cyan-400 max-w-[120px] sm:max-w-[150px]">
+            <p id="p1-subtext" class="text-xs text-slate-400">White / Cyan</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <span class="text-xs text-slate-400 uppercase font-semibold block">Wins</span>
+          <span id="p1-score" class="font-heading font-extrabold text-2xl text-cyan-400">0</span>
+        </div>
+      </div>
+
+      <!-- Turn Indicator & Timer Box -->
+      <div class="glass-card rounded-2xl p-3 flex flex-col items-center justify-center relative overflow-hidden">
+        <!-- Progress Bar for Timer -->
+        <div id="timer-bar" class="absolute bottom-0 left-0 h-1 bg-cyan-400 transition-all duration-300 w-full"></div>
+        
+        <div class="flex items-center gap-2 mb-1">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span id="turn-badge" class="font-heading font-bold text-sm tracking-wider uppercase text-cyan-400">
+            PLAYER 1'S TURN
+          </span>
+        </div>
+        
+        <div class="flex items-center gap-3 text-xs text-slate-400">
+          <div class="flex items-center gap-1">
+            <span>⏱️ Timer:</span>
+            <select id="timer-select" onchange="changeTimerSetting()" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded px-1.5 py-0.5 focus:outline-none">
+              <option value="off">Off</option>
+              <option value="15">15s</option>
+              <option value="30">30s</option>
+            </select>
+          </div>
+          <span id="timer-display" class="font-mono font-bold text-slate-200 hidden">15s</span>
+        </div>
+      </div>
+
+      <!-- Player 2 Card -->
+      <div id="p2-card" class="glass-card rounded-2xl p-3 sm:p-4 flex items-center justify-between transition-all duration-300">
+        <div class="text-left">
+          <span class="text-xs text-slate-400 uppercase font-semibold block">Wins</span>
+          <span id="p2-score" class="font-heading font-extrabold text-2xl text-pink-500">0</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="text-right">
+            <input type="text" id="p2-name" value="Player 2" onchange="updatePlayerNames()" class="bg-transparent font-heading font-bold text-base text-pink-500 text-right focus:outline-none border-b border-transparent focus:border-pink-500 max-w-[120px] sm:max-w-[150px]">
+            <p id="p2-subtext" class="text-xs text-slate-400">Black / Pink</p>
+          </div>
+          <div class="w-10 h-10 rounded-full bg-pink-500/20 border border-pink-400/50 flex items-center justify-center font-bold text-pink-400 text-lg shadow-md shadow-pink-500/20">
+            P2
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive Game Display Area -->
+    <div class="glass-card rounded-2xl p-3 sm:p-6 flex-1 flex flex-col items-center justify-center relative min-h-[460px] overflow-hidden">
+      
+      <!-- Sub-controls Bar (Game Specific) -->
+      <div id="sub-controls" class="w-full flex justify-between items-center mb-3 px-2 text-xs text-slate-300">
+        <div id="game-info" class="font-semibold text-slate-300">Chess - Standard Rules</div>
+        <div id="game-extra-controls" class="flex gap-2">
+          <!-- Injected per game -->
+        </div>
+      </div>
+
+      <!-- Game Stage (Canvas/Grid dynamically rendered here) -->
+      <div id="game-stage" class="w-full flex-1 flex items-center justify-center relative">
+        <!-- Game boards render inside -->
+      </div>
+
+      <!-- Move Log & Captured Graveyard Footer -->
+      <div id="game-footer" class="w-full mt-3 pt-3 border-t border-slate-800/80 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-slate-400">
+        <div id="graveyard" class="flex items-center gap-2 overflow-x-auto max-w-full">
+          <!-- Captured pieces or score detail -->
+        </div>
+        <div id="move-status" class="font-mono text-slate-300 truncate max-w-full">
+          Ready to play
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Pawn Promotion Modal (Chess) -->
+  <div id="promotion-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 hidden">
+    <div class="glass-card p-6 rounded-2xl border border-cyan-500/40 max-w-xs w-full text-center animate-pop">
+      <h3 class="font-heading font-bold text-xl text-white mb-2">Promote Pawn</h3>
+      <p class="text-xs text-slate-300 mb-4">Choose a piece for promotion:</p>
+      <div id="promotion-options" class="grid grid-cols-4 gap-2">
+        <!-- Buttons injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Victory Banner Modal -->
+  <div id="victory-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center z-50 hidden">
+    <canvas id="confetti-canvas" class="absolute inset-0 pointer-events-none z-0"></canvas>
+    <div class="glass-card p-6 sm:p-8 rounded-3xl border border-cyan-400/30 max-w-sm sm:max-w-md w-full text-center relative z-10 animate-pop shadow-2xl">
+      <div class="w-16 h-16 mx-auto mb-3 rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-200 flex items-center justify-center text-3xl shadow-lg shadow-amber-500/30">
+        🏆
+      </div>
+      <h2 id="victory-title" class="font-heading font-black text-3xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-pink-500 mb-1">
+        VICTORY!
+      </h2>
+      <p id="victory-subtitle" class="text-sm font-semibold text-slate-200 mb-4">Player 1 wins the match!</p>
+      <div id="victory-stats" class="bg-slate-900/80 rounded-xl p-3 text-xs text-slate-300 mb-6 flex justify-around">
+        <div>Total Moves: <span id="stat-moves" class="font-bold text-white">0</span></div>
+        <div>Time Spent: <span id="stat-time" class="font-bold text-white">0s</span></div>
+      </div>
+      <div class="flex gap-3">
+        <button onclick="closeVictoryModal(); resetCurrentGame();" class="flex-1 glass-button bg-cyan-500/20 hover:bg-cyan-500/30 border-cyan-400/50 py-3 rounded-xl font-heading font-bold text-cyan-300 text-sm">
+          Play Again
+        </button>
+        <button onclick="closeVictoryModal()" class="px-4 glass-button text-slate-400 hover:text-white rounded-xl text-sm font-semibold">
+          Dismiss
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       GLOBAL STATE & CONTROLLERS
+       ========================================================================== */
+    const state = {
+      activeGame: 'chess', // 'chess', 'tictactoe', 'connect4', 'dots', 'gomoku'
+      turn: 1, // 1 = Player 1, 2 = Player 2
+      scores: { p1: 0, p2: 0 },
+      p1Name: 'Player 1',
+      p2Name: 'Player 2',
+      soundEnabled: true,
+      timerSetting: 'off', // 'off', '15', '30'
+      timeLeft: 0,
+      timerInterval: null,
+      gameStartTime: 0,
+      moveCount: 0,
+      chessFlipped: false,
+      tttGridSize: 3 // 3 or 4
+    };
+
+    /* ==========================================================================
+       AUDIO SYNTHESIZER (Web Audio API)
+       ========================================================================== */
+    let audioCtx = null;
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playTone(freq, type = 'sine', duration = 0.1, gainVal = 0.1) {
+      if (!state.soundEnabled) return;
+      try {
+        initAudio();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function soundClick() { playTone(600, 'sine', 0.05, 0.08); }
+    function soundMove() { playTone(440, 'triangle', 0.1, 0.12); }
+    function soundCapture() { playTone(220, 'sawtooth', 0.15, 0.15); }
+    function soundVictory() {
+      if (!state.soundEnabled) return;
+      const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+      notes.forEach((n, idx) => {
+        setTimeout(() => playTone(n, 'triangle', 0.3, 0.15), idx * 120);
+      });
+    }
+
+    function toggleSound() {
+      state.soundEnabled = !state.soundEnabled;
+      document.getElementById('sound-icon-on').classList.toggle('hidden', !state.soundEnabled);
+      document.getElementById('sound-icon-off').classList.toggle('hidden', state.soundEnabled);
+    }
+
+    /* ==========================================================================
+       PLAYER & TURN MANAGEMENT
+       ========================================================================== */
+    function updatePlayerNames() {
+      state.p1Name = document.getElementById('p1-name').value.trim() || 'Player 1';
+      state.p2Name = document.getElementById('p2-name').value.trim() || 'Player 2';
+      updateUI();
+    }
+
+    function updateUI() {
+      const p1Card = document.getElementById('p1-card');
+      const p2Card = document.getElementById('p2-card');
+      const turnBadge = document.getElementById('turn-badge');
+
+      if (state.turn === 1) {
+        p1Card.classList.add('p1-turn');
+        p2Card.classList.remove('p2-turn');
+        turnBadge.innerText = `${state.p1Name.toUpperCase()}'S TURN`;
+        turnBadge.className = 'font-heading font-bold text-sm tracking-wider uppercase text-cyan-400';
+      } else {
+        p2Card.classList.add('p2-turn');
+        p1Card.classList.remove('p1-turn');
+        turnBadge.innerText = `${state.p2Name.toUpperCase()}'S TURN`;
+        turnBadge.className = 'font-heading font-bold text-sm tracking-wider uppercase text-pink-500';
+      }
+
+      document.getElementById('p1-score').innerText = state.scores.p1;
+      document.getElementById('p2-score').innerText = state.scores.p2;
+    }
+
+    function switchTurn() {
+      state.turn = state.turn === 1 ? 2 : 1;
+      state.moveCount++;
+      resetTimer();
+      updateUI();
+    }
+
+    /* Timer Management */
+    function changeTimerSetting() {
+      state.timerSetting = document.getElementById('timer-select').value;
+      resetTimer();
+    }
+
+    function resetTimer() {
+      clearInterval(state.timerInterval);
+      const timerDisplay = document.getElementById('timer-display');
+      const timerBar = document.getElementById('timer-bar');
+
+      if (state.timerSetting === 'off') {
+        timerDisplay.classList.add('hidden');
+        timerBar.style.width = '100%';
+        return;
+      }
+
+      timerDisplay.classList.remove('hidden');
+      state.timeLeft = parseInt(state.timerSetting);
+      timerDisplay.innerText = `${state.timeLeft}s`;
+      timerBar.style.width = '100%';
+
+      const totalTime = state.timeLeft;
+      state.timerInterval = setInterval(() => {
+        state.timeLeft--;
+        timerDisplay.innerText = `${state.timeLeft}s`;
+        timerBar.style.width = `${(state.timeLeft / totalTime) * 100}%`;
+
+        if (state.timeLeft <= 0) {
+          clearInterval(state.timerInterval);
+          soundCapture();
+          switchTurn(); // Pass turn on timeout
+        }
+      }, 1000);
+    }
+
+    /* ==========================================================================
+       VICTORY CELEBRATION & CONFETTI
+       ========================================================================== */
+    function triggerVictory(winnerPlayer, reason = '') {
+      soundVictory();
+      clearInterval(state.timerInterval);
+
+      if (winnerPlayer === 1) state.scores.p1++;
+      else if (winnerPlayer === 2) state.scores.p2++;
+      updateUI();
+
+      const modal = document.getElementById('victory-modal');
+      const title = document.getElementById('victory-title');
+      const subtitle = document.getElementById('victory-subtitle');
+      const statMoves = document.getElementById('stat-moves');
+      const statTime = document.getElementById('stat-time');
+
+      if (winnerPlayer === 0) {
+        title.innerText = "IT'S A DRAW!";
+        title.className = "font-heading font-black text-3xl text-amber-400 mb-1";
+        subtitle.innerText = reason || "Equally matched combatants!";
+      } else {
+        const winnerName = winnerPlayer === 1 ? state.p1Name : state.p2Name;
+        title.innerText = "VICTORY!";
+        title.className = winnerPlayer === 1 
+          ? "font-heading font-black text-3xl text-cyan-400 mb-1"
+          : "font-heading font-black text-3xl text-pink-500 mb-1";
+        subtitle.innerText = `${winnerName} claims the victory! ${reason}`;
+      }
+
+      const elapsed = Math.round((Date.now() - state.gameStartTime) / 1000);
+      statMoves.innerText = state.moveCount;
+      statTime.innerText = `${elapsed}s`;
+
+      modal.classList.remove('hidden');
+      startConfetti();
+    }
+
+    function closeVictoryModal() {
+      document.getElementById('victory-modal').classList.add('hidden');
+      stopConfetti();
+    }
+
+    /* Canvas Confetti Animation */
+    let confettiAnimationId = null;
+    function startConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const particles = [];
+      const colors = ['#00f0ff', '#ff007f', '#ffd700', '#ffffff', '#a855f7'];
+
+      for (let i = 0; i < 120; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          size: Math.random() * 8 + 4,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          speedY: Math.random() * 4 + 2,
+          speedX: Math.random() * 2 - 1,
+          rot: Math.random() * 360,
+          rotSpeed: Math.random() * 10 - 5
+        });
+      }
+
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+          p.y += p.speedY;
+          p.x += p.speedX;
+          p.rot += p.rotSpeed;
+          if (p.y > canvas.height) p.y = -10;
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rot * Math.PI) / 180);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+          ctx.restore();
+        });
+        confettiAnimationId = requestAnimationFrame(animate);
+      }
+      animate();
+    }
+
+    function stopConfetti() {
+      if (confettiAnimationId) cancelAnimationFrame(confettiAnimationId);
+    }
+
+    /* ==========================================================================
+       GAME 1: CHESS ENGINE
+       ========================================================================== */
+    const CHESS_PIECES_SVG = {
+      w: {
+        p: `<svg viewBox="0 0 45 45" class="chess-piece w-full h-full text-cyan-300 drop-shadow"><path fill="currentColor" d="M22.5 9c-2.21 0-4 1.79-4 4 0 1.29.61 2.43 1.56 3.16C18.12 17.5 17 19.5 17 22c0 2.21.89 4.21 2.33 5.67C16.89 28.53 15 31.03 15 34h15c0-2.97-1.89-5.47-4.33-6.33C27.11 26.21 28 24.21 28 22c0-2.5-1.12-4.5-3.06-5.84C25.89 15.43 26.5 14.29 26.5 13c0-2.21-1.79-4-4-4zM12 37v2h21v-2H12z"/></svg>`,
+        r: `<svg viewBox="0 0 45 45" class="chess-piece w-full h-full text-cyan-300 drop-shadow"><path fill="currentColor" d="M9 39h27v-3H9v3zm3-4h21v-4H12v4zm1-6h19c0-2.5-2.5-4-3-4H16c-.5 0-3 1.5-3 4zm2-6h15v-5H15v5zm-2-7h19v-2h-3v-3h-4v3h-5v-3h-4v3h-3v2z"/></svg>`,
+        n: `<svg viewBox="0 0 45 45" class="chess-piece w-full h-full text-cyan-300 drop-shadow"><path fill="currentColor" d="M22 10c-5 0-9 4-9 9 0 .8.1 1.6.4 2.3C11.5 22.2 10 24.2 10 27c0 4 3 7 7 7h15v-3h-2v-4h2v-3h-4c-1 0-2-.5-2.5-1.5L24 19l2-3-4 1-1-3 1-4z"/></svg>`,
+        b: `<svg viewBox="0 0 45 45" class="chess-piece w-full h-full text-cyan-300 drop-shadow"><path fill="currentColor" d="M22.5 8a4 4 0 0 0-4 4c0 1.5.8 2.8 2 3.5v2.2c-3 1-5 3.8-5 7.1 0 2.5 1 4.7 2.7 6.2L16 34h13l-2.2-3c1.7-1.5 2.7-3.7 2.7-6.2 0-3.3-2-6.1-5-7.1v-2.2c1.2-.7 2-2 2-3.5a4 4 0 0 0-4-4zm-8 29v2h16v-2H14.5z"/></svg>`,
+        q: `<svg viewBox="0 0 45 45" class="chess-piece w-full h-full text-cyan-300 drop-shadow"><path fill="currentColor" d="M9 26l3-13 7 7 3.5-10 3.5 10 7-7 3 13H9zm0 3h27v3H9v-3zm0 5h27v3H9v-3z"/></svg>`,
+        k: `<svg viewBox="0 0 45 45" class="chess-piece w-full h-full text-cyan-300 drop-shadow"><path fill="currentColor" d="M21 8h3v3h3v3h-3v3h-3v-3h-3v-3h3V8zm-8 12l3-2 6.5 4 6.5-4 3 2v9H13v-9zm0 11h19v3H13v-3zm0 5h19v3H13v-3z"/></svg>`
+      },
+      b: {
+        p: `<svg viewBox="0 0 45 45" class="chess-piece w-full h-full text-pink-500 drop-shadow"><path fill="currentColor" d="M22.5 9c-2.21 0-4 1.79-4 4 0 1.29.61 2.43 1.56 3.16C18.12 17.5 17 19.5 17 22c0 2.21.89 4.21 2.33 5.67C16.89 28.53 15 31.03 15 34h15c0-2.97-1.89-5.47-4.33-6.33C27.11 26.21 28 24.21 28 22c0-2.5-1.12-4.5-3.06-5.84C25.89 15.43 26.5 14.29 26.5 13c0-2.21-1.79-4-4-4zM12 37v2h21v-2H12z"/></svg>`,
+        r: `<svg viewBox="0 0 45 45" class="chess-piece w-full h-full text-pink-500 drop-shadow"><path fill="currentColor" d="M9 39h27v-3H9v3zm3-4h21v-4H12v4zm1-6h19c0-2.5-2.5-4-3-4H16c-.5 0-3 1.5-3 4zm2-6h15v-5H15v5zm-2-7h19v-2h-3v-3h-4v3h-5v-3h-4v3h-3v2z"/></svg>`,
+        n: `<svg viewBox="0 0 45 45" class="chess-piece w-full h-full text-pink-500 drop-shadow"><path fill="currentColor" d="M22 10c-5 0-9 4-9 9 0 .8.1 1.6.4 2.3C11.5 22.2 10 24.2 10 27c0 4 3 7 7 7h15v-3h-2v-4h2v-3h-4c-1 0-2-.5-2.5-1.5L24 19l2-3-4 1-1-3 1-4z"/></svg>`,
+        b: `<svg viewBox="0 0 45 45" class="chess-piece w-full h-full text-pink-500 drop-shadow"><path fill="currentColor" d="M22.5 8a4 4 0 0 0-4 4c0 1.5.8 2.8 2 3.5v2.2c-3 1-5 3.8-5 7.1 0 2.5 1 4.7 2.7 6.2L16 34h13l-2.2-3c1.7-1.5 2.7-3.7 2.7-6.2 0-3.3-2-6.1-5-7.1v-2.2c1.2-.7 2-2 2-3.5a4 4 0 0 0-4-4zm-8 29v2h16v-2H14.5z"/></svg>`,
+        q: `<svg viewBox="0 0 45 45" class="chess-piece w-full h-full text-pink-500 drop-shadow"><path fill="currentColor" d="M9 26l3-13 7 7 3.5-10 3.5 10 7-7 3 13H9zm0 3h27v3H9v-3zm0 5h27v3H9v-3z"/></svg>`,
+        k: `<svg viewBox="0 0 45 45" class="chess-piece w-full h-full text-pink-500 drop-shadow"><path fill="currentColor" d="M21 8h3v3h3v3h-3v3h-3v-3h-3v-3h3V8zm-8 12l3-2 6.5 4 6.5-4 3 2v9H13v-9zm0 11h19v3H13v-3zm0 5h19v3H13v-3z"/></svg>`
+      }
+    };
+
+    let chessState = {
+      board: [],
+      selectedSquare: null,
+      validMoves: [],
+      lastMove: null,
+      graveyard: { w: [], b: [] },
+      pendingPromotion: null
+    };
+
+    function initChess() {
+      // 8x8 standard board
+      // 'b' = black, 'w' = white
+      const initialBoard = [
+        ['br', 'bn', 'bb', 'bq', 'bk', 'bb', 'bn', 'br'],
+        ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
+        [null, null, null, null, null, null, null, null],
+        [null, null, null, null, null, null, null, null],
+        [null, null, null, null, null, null, null, null],
+        [null, null, null, null, null, null, null, null],
+        ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
+        ['wr', 'wn', 'wb', 'wq', 'wk', 'wb', 'wn', 'wr']
+      ];
+
+      chessState.board = initialBoard.map(row => row.slice());
+      chessState.selectedSquare = null;
+      chessState.validMoves = [];
+      chessState.lastMove = null;
+      chessState.graveyard = { w: [], b: [] };
+
+      document.getElementById('p1-subtext').innerText = 'White Pieces';
+      document.getElementById('p2-subtext').innerText = 'Black Pieces';
+
+      renderChessSubControls();
+      renderChessBoard();
+      updateChessGraveyard();
+      document.getElementById('move-status').innerText = 'Chess ready. White to move.';
+    }
+
+    function renderChessSubControls() {
+      document.getElementById('game-info').innerText = 'Chess - Standard Local Match';
+      const controls = document.getElementById('game-extra-controls');
+      controls.innerHTML = `
+        <button onclick="toggleChessFlip()" class="glass-button px-2 py-1 rounded text-xs flex items-center gap-1 hover:text-cyan-300">
+          🔄 Flip Board
+        </button>
+      `;
+    }
+
+    function toggleChessFlip() {
+      state.chessFlipped = !state.chessFlipped;
+      renderChessBoard();
+    }
+
+    function renderChessBoard() {
+      const stage = document.getElementById('game-stage');
+      let html = `<div class="grid grid-cols-8 gap-0 border-2 border-slate-700/80 rounded-lg overflow-hidden shadow-2xl max-w-[420px] w-full aspect-square">`;
+
+      const kingInCheckPos = findKingInCheck(chessState.board, state.turn === 1 ? 'w' : 'b');
+
+      for (let rIndex = 0; rIndex < 8; rIndex++) {
+        for (let cIndex = 0; cIndex < 8; cIndex++) {
+          const r = state.chessFlipped ? 7 - rIndex : rIndex;
+          const c = state.chessFlipped ? 7 - cIndex : cIndex;
+
+          const isDark = (r + c) % 2 === 1;
+          const piece = chessState.board[r][c];
+          
+          let squareClass = isDark ? 'chess-square-dark' : 'chess-square-light';
+          
+          if (chessState.selectedSquare && chessState.selectedSquare.r === r && chessState.selectedSquare.c === c) {
+            squareClass += ' chess-square-selected';
+          } else if (chessState.lastMove && ((chessState.lastMove.from.r === r && chessState.lastMove.from.c === c) || (chessState.lastMove.to.r === r && chessState.lastMove.to.c === c))) {
+            squareClass += ' chess-square-lastmove';
+          }
+
+          if (kingInCheckPos && kingInCheckPos.r === r && kingInCheckPos.c === c) {
+            squareClass += ' chess-square-check';
+          }
+
+          const isValidMove = chessState.validMoves.some(m => m.r === r && m.c === c);
+          const isCapture = isValidMove && piece !== null;
+
+          html += `<div onclick="handleChessSquareClick(${r}, ${c})" class="${squareClass} flex items-center justify-center relative cursor-pointer select-none p-1 transition-colors duration-150">`;
+          
+          if (piece) {
+            const color = piece[0];
+            const type = piece[1];
+            html += CHESS_PIECES_SVG[color][type];
+          }
+
+          if (isValidMove) {
+            if (isCapture) {
+              html += `<div class="capture-ring absolute pointer-events-none"></div>`;
+            } else {
+              html += `<div class="move-dot absolute pointer-events-none"></div>`;
+            }
+          }
+
+          html += `</div>`;
+        }
+      }
+
+      html += `</div>`;
+      stage.innerHTML = html;
+    }
+
+    function handleChessSquareClick(r, c) {
+      const piece = chessState.board[r][c];
+      const currentColor = state.turn === 1 ? 'w' : 'b';
+
+      // If clicking own piece, select it
+      if (piece && piece[0] === currentColor) {
+        soundClick();
+        chessState.selectedSquare = { r, c };
+        chessState.validMoves = getFilteredMoves(r, c, chessState.board, currentColor);
+        renderChessBoard();
+        return;
+      }
+
+      // If a square was selected and clicked square is valid move -> Execute Move
+      if (chessState.selectedSquare) {
+        const move = chessState.validMoves.find(m => m.r === r && m.c === c);
+        if (move) {
+          executeChessMove(chessState.selectedSquare, { r, c });
+          return;
+        }
+      }
+
+      // Deselect
+      chessState.selectedSquare = null;
+      chessState.validMoves = [];
+      renderChessBoard();
+    }
+
+    function executeChessMove(from, to) {
+      const piece = chessState.board[from.r][from.c];
+      const target = chessState.board[to.r][to.c];
+
+      if (target) {
+        soundCapture();
+        chessState.graveyard[target[0]].push(target[1]);
+        updateChessGraveyard();
+      } else {
+        soundMove();
+      }
+
+      chessState.board[to.r][to.c] = piece;
+      chessState.board[from.r][from.c] = null;
+      chessState.lastMove = { from, to };
+      chessState.selectedSquare = null;
+      chessState.validMoves = [];
+
+      // Check Pawn Promotion
+      if (piece[1] === 'p' && (to.r === 0 || to.r === 7)) {
+        chessState.pendingPromotion = { r: to.r, c: to.c, color: piece[0] };
+        showPromotionModal(piece[0]);
+        return;
+      }
+
+      finishChessTurn();
+    }
+
+    function finishChessTurn() {
+      const nextColor = state.turn === 1 ? 'b' : 'w';
+      const enemyKingPos = findKingInCheck(chessState.board, nextColor);
+      const hasMoves = playerHasLegalMoves(nextColor, chessState.board);
+
+      if (enemyKingPos && !hasMoves) {
+        renderChessBoard();
+        triggerVictory(state.turn, 'Checkmate!');
+        return;
+      } else if (!hasMoves) {
+        renderChessBoard();
+        triggerVictory(0, 'Stalemate!');
+        return;
+      }
+
+      if (enemyKingPos) {
+        soundCapture();
+        document.getElementById('move-status').innerText = '⚠️ CHECK!';
+      } else {
+        document.getElementById('move-status').innerText = `Moved piece. ${state.turn === 1 ? state.p2Name : state.p1Name}'s turn.`;
+      }
+
+      switchTurn();
+      renderChessBoard();
+    }
+
+    function getRawMoves(r, c, board) {
+      const piece = board[r][c];
+      if (!piece) return [];
+      const color = piece[0];
+      const type = piece[1];
+      const moves = [];
+
+      const dirPawn = color === 'w' ? -1 : 1;
+      const startRowPawn = color === 'w' ? 6 : 1;
+
+      if (type === 'p') {
+        // Forward 1
+        if (r + dirPawn >= 0 && r + dirPawn < 8 && !board[r + dirPawn][c]) {
+          moves.push({ r: r + dirPawn, c });
+          // Forward 2
+          if (r === startRowPawn && !board[r + dirPawn * 2][c]) {
+            moves.push({ r: r + dirPawn * 2, c });
+          }
+        }
+        // Captures
+        [-1, 1].forEach(dc => {
+          const nr = r + dirPawn, nc = c + dc;
+          if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+            const target = board[nr][nc];
+            if (target && target[0] !== color) {
+              moves.push({ r: nr, c: nc });
+            }
+          }
+        });
+      } else if (type === 'n') {
+        const offsets = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+        offsets.forEach(([dr, dc]) => {
+          const nr = r + dr, nc = c + dc;
+          if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+            if (!board[nr][nc] || board[nr][nc][0] !== color) {
+              moves.push({ r: nr, c: nc });
+            }
+          }
+        });
+      } else if (type === 'b' || type === 'r' || type === 'q') {
+        const dirs = [];
+        if (type === 'b' || type === 'q') dirs.push([-1,-1],[-1,1],[1,-1],[1,1]);
+        if (type === 'r' || type === 'q') dirs.push([-1,0],[1,0],[0,-1],[0,1]);
+
+        dirs.forEach(([dr, dc]) => {
+          let nr = r + dr, nc = c + dc;
+          while (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+            if (!board[nr][nc]) {
+              moves.push({ r: nr, c: nc });
+            } else {
+              if (board[nr][nc][0] !== color) moves.push({ r: nr, c: nc });
+              break;
+            }
+            nr += dr; nc += dc;
+          }
+        });
+      } else if (type === 'k') {
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            if (dr === 0 && dc === 0) continue;
+            const nr = r + dr, nc = c + dc;
+            if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+              if (!board[nr][nc] || board[nr][nc][0] !== color) {
+                moves.push({ r: nr, c: nc });
+              }
+            }
+          }
+        }
+      }
+      return moves;
+    }
+
+    function getFilteredMoves(r, c, board, color) {
+      const raw = getRawMoves(r, c, board);
+      return raw.filter(m => {
+        // Test move on hypothetical board
+        const tempBoard = board.map(row => row.slice());
+        tempBoard[m.r][m.c] = tempBoard[r][c];
+        tempBoard[r][c] = null;
+        return !findKingInCheck(tempBoard, color);
+      });
+    }
+
+    function findKingInCheck(board, color) {
+      let kingPos = null;
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (board[r][c] === color + 'k') {
+            kingPos = { r, c };
+            break;
+          }
+        }
+      }
+      if (!kingPos) return null;
+
+      const enemyColor = color === 'w' ? 'b' : 'w';
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (board[r][c] && board[r][c][0] === enemyColor) {
+            const moves = getRawMoves(r, c, board);
+            if (moves.some(m => m.r === kingPos.r && m.c === kingPos.c)) {
+              return kingPos;
+            }
+          }
+        }
+      }
+      return null;
+    }
+
+    function playerHasLegalMoves(color, board) {
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (board[r][c] && board[r][c][0] === color) {
+            const moves = getFilteredMoves(r, c, board, color);
+            if (moves.length > 0) return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    /* Pawn Promotion Modal Logic */
+    function showPromotionModal(color) {
+      const modal = document.getElementById('promotion-modal');
+      const options = document.getElementById('promotion-options');
+      const pieces = ['q', 'r', 'n', 'b'];
+
+      options.innerHTML = pieces.map(p => `
+        <button onclick="selectPromotion('${p}')" class="p-3 glass-button rounded-xl flex items-center justify-center hover:bg-cyan-500/30">
+          ${CHESS_PIECES_SVG[color][p]}
+        </button>
+      `).join('');
+
+      modal.classList.remove('hidden');
+    }
+
+    function selectPromotion(pieceType) {
+      document.getElementById('promotion-modal').classList.add('hidden');
+      if (chessState.pendingPromotion) {
+        const { r, c, color } = chessState.pendingPromotion;
+        chessState.board[r][c] = color + pieceType;
+        chessState.pendingPromotion = null;
+        finishChessTurn();
+      }
+    }
+
+    function updateChessGraveyard() {
+      const graveyardEl = document.getElementById('graveyard');
+      const wCaptured = chessState.graveyard.w.map(p => CHESS_PIECES_SVG.w[p]).join('');
+      const bCaptured = chessState.graveyard.b.map(p => CHESS_PIECES_SVG.b[p]).join('');
+
+      graveyardEl.innerHTML = `
+        <div class="flex items-center gap-1 border-r border-slate-700 pr-2">
+          <span class="text-[10px] text-cyan-400 font-bold">P1 Taken:</span>
+          <div class="flex h-5 w-auto overflow-hidden">${bCaptured}</div>
+        </div>
+        <div class="flex items-center gap-1 pl-1">
+          <span class="text-[10px] text-pink-500 font-bold">P2 Taken:</span>
+          <div class="flex h-5 w-auto overflow-hidden">${wCaptured}</div>
+        </div>
+      `;
+    }
+
+    /* ==========================================================================
+       GAME 2: TIC-TAC-TOE ENGINE
+       ========================================================================== */
+    let tttState = {
+      board: [],
+      winningLine: null
+    };
+
+    function initTicTacToe() {
+      const size = state.tttGridSize;
+      tttState.board = Array(size * size).fill(null);
+      tttState.winningLine = null;
+
+      document.getElementById('p1-subtext').innerText = 'Symbol: X';
+      document.getElementById('p2-subtext').innerText = 'Symbol: O';
+
+      renderTTTSubControls();
+      renderTTTBoard();
+      document.getElementById('graveyard').innerHTML = `<span class="text-slate-400">Match target: ${size} in a row</span>`;
+      document.getElementById('move-status').innerText = 'Tic-Tac-Toe ready.';
+    }
+
+    function renderTTTSubControls() {
+      document.getElementById('game-info').innerText = `Tic-Tac-Toe (${state.tttGridSize}x${state.tttGridSize} Mode)`;
+      const controls = document.getElementById('game-extra-controls');
+      controls.innerHTML = `
+        <button onclick="setTTTSize(3)" class="glass-button px-2.5 py-1 rounded text-xs ${state.tttGridSize === 3 ? 'text-cyan-400 border-cyan-400' : ''}">3x3</button>
+        <button onclick="setTTTSize(4)" class="glass-button px-2.5 py-1 rounded text-xs ${state.tttGridSize === 4 ? 'text-cyan-400 border-cyan-400' : ''}">4x4</button>
+      `;
+    }
+
+    function setTTTSize(size) {
+      state.tttGridSize = size;
+      initTicTacToe();
+    }
+
+    function renderTTTBoard() {
+      const stage = document.getElementById('game-stage');
+      const size = state.tttGridSize;
+      
+      let gridColsClass = size === 3 ? 'grid-cols-3' : 'grid-cols-4';
+      let html = `<div class="grid ${gridColsClass} gap-2 max-w-[360px] w-full aspect-square relative">`;
+
+      for (let i = 0; i < size * size; i++) {
+        const val = tttState.board[i];
+        let content = '';
+        if (val === 1) {
+          content = `<span class="text-p1 font-heading font-black text-4xl sm:text-5xl animate-pop">X</span>`;
+        } else if (val === 2) {
+          content = `<span class="text-p2 font-heading font-black text-4xl sm:text-5xl animate-pop">O</span>`;
+        }
+
+        const isWinCell = tttState.winningLine && tttState.winningLine.includes(i);
+        const winBg = isWinCell ? (val === 1 ? 'bg-cyan-500/20 border-cyan-400' : 'bg-pink-500/20 border-pink-500') : '';
+
+        html += `
+          <button onclick="handleTTTCellClick(${i})" class="glass-card rounded-2xl flex items-center justify-center hover:bg-slate-800/80 transition-all ${winBg}">
+            ${content}
+          </button>
+        `;
+      }
+
+      html += `</div>`;
+      stage.innerHTML = html;
+    }
+
+    function handleTTTCellClick(index) {
+      if (tttState.board[index] !== null || tttState.winningLine) return;
+
+      soundMove();
+      tttState.board[index] = state.turn;
+      
+      const winLine = checkTTTWin();
+      if (winLine) {
+        tttState.winningLine = winLine;
+        renderTTTBoard();
+        triggerVictory(state.turn, `Completed ${state.tttGridSize}-in-a-row!`);
+        return;
+      }
+
+      if (tttState.board.every(cell => cell !== null)) {
+        renderTTTBoard();
+        triggerVictory(0, 'Grid is completely full!');
+        return;
+      }
+
+      switchTurn();
+      renderTTTBoard();
+    }
+
+    function checkTTTWin() {
+      const size = state.tttGridSize;
+      const b = tttState.board;
+      const winLines = [];
+
+      // Rows
+      for (let r = 0; r < size; r++) {
+        const row = [];
+        for (let c = 0; c < size; c++) row.push(r * size + c);
+        winLines.push(row);
+      }
+      // Columns
+      for (let c = 0; c < size; c++) {
+        const col = [];
+        for (let r = 0; r < size; r++) col.push(r * size + c);
+        winLines.push(col);
+      }
+      // Diagonals
+      const diag1 = [], diag2 = [];
+      for (let i = 0; i < size; i++) {
+        diag1.push(i * size + i);
+        diag2.push(i * size + (size - 1 - i));
+      }
+      winLines.push(diag1, diag2);
+
+      for (const line of winLines) {
+        const first = b[line[0]];
+        if (first !== null && line.every(idx => b[idx] === first)) {
+          return line;
+        }
+      }
+      return null;
+    }
+
+    /* ==========================================================================
+       GAME 3: CONNECT FOUR ENGINE
+       ========================================================================== */
+    const C4_ROWS = 6;
+    const C4_COLS = 7;
+    let c4Board = [];
+
+    function initConnect4() {
+      c4Board = Array(C4_ROWS).fill(null).map(() => Array(C4_COLS).fill(0));
+
+      document.getElementById('p1-subtext').innerText = 'Red Tokens';
+      document.getElementById('p2-subtext').innerText = 'Yellow Tokens';
+
+      document.getElementById('game-info').innerText = 'Connect Four - Drop Tokens into Columns';
+      document.getElementById('game-extra-controls').innerHTML = '';
+      document.getElementById('graveyard').innerHTML = `<span class="text-slate-400">Match 4 tokens horizontally, vertically, or diagonally.</span>`;
+      
+      renderConnect4Board();
+      document.getElementById('move-status').innerText = 'Connect Four ready.';
+    }
+
+    function renderConnect4Board() {
+      const stage = document.getElementById('game-stage');
+      
+      let html = `<div class="glass-card p-3 sm:p-4 rounded-3xl bg-slate-900/90 border border-slate-700 shadow-2xl max-w-[440px] w-full">`;
+      html += `<div class="grid grid-cols-7 gap-2">`;
+
+      for (let col = 0; col < C4_COLS; col++) {
+        html += `<div onclick="dropConnect4Token(${col})" class="flex flex-col gap-2 cursor-pointer group p-1 rounded-xl hover:bg-slate-800/40 transition-colors">`;
+        for (let row = 0; row < C4_ROWS; row++) {
+          const val = c4Board[row][col];
+          let tokenInner = '';
+
+          if (val === 1) {
+            tokenInner = `<div class="w-full h-full rounded-full bg-cyan-400 shadow-lg shadow-cyan-500/50 token-drop"></div>`;
+          } else if (val === 2) {
+            tokenInner = `<div class="w-full h-full rounded-full bg-pink-500 shadow-lg shadow-pink-500/50 token-drop"></div>`;
+          } else {
+            tokenInner = `<div class="w-full h-full rounded-full bg-slate-950/80 group-hover:bg-slate-800/60 transition-colors"></div>`;
+          }
+
+          html += `<div class="w-full aspect-square p-1 flex items-center justify-center">${tokenInner}</div>`;
+        }
+        html += `</div>`;
+      }
+
+      html += `</div></div>`;
+      stage.innerHTML = html;
+    }
+
+    function dropConnect4Token(col) {
+      // Find bottom-most empty row in column
+      let targetRow = -1;
+      for (let r = C4_ROWS - 1; r >= 0; r--) {
+        if (c4Board[r][col] === 0) {
+          targetRow = r;
+          break;
+        }
+      }
+
+      if (targetRow === -1) return; // Column full
+
+      soundMove();
+      c4Board[targetRow][col] = state.turn;
+
+      if (checkC4Win(targetRow, col)) {
+        renderConnect4Board();
+        triggerVictory(state.turn, 'Connected 4 in a row!');
+        return;
+      }
+
+      if (c4Board.every(row => row.every(cell => cell !== 0))) {
+        renderConnect4Board();
+        triggerVictory(0, 'Board is completely filled!');
+        return;
+      }
+
+      switchTurn();
+      renderConnect4Board();
+    }
+
+    function checkC4Win(r, c) {
+      const p = c4Board[r][c];
+      const directions = [
+        [[0,1], [0,-1]],  // Horizontal
+        [[1,0], [-1,0]],  // Vertical
+        [[1,1], [-1,-1]], // Diagonal Positive
+        [[1,-1], [-1,1]]  // Diagonal Negative
+      ];
+
+      for (const [d1, d2] of directions) {
+        let count = 1;
+        // Count direction 1
+        let nr = r + d1[0], nc = c + d1[1];
+        while (nr >= 0 && nr < C4_ROWS && nc >= 0 && nc < C4_COLS && c4Board[nr][nc] === p) {
+          count++; nr += d1[0]; nc += d1[1];
+        }
+        // Count direction 2
+        nr = r + d2[0]; nc = c + d2[1];
+        while (nr >= 0 && nr < C4_ROWS && nc >= 0 && nc < C4_COLS && c4Board[nr][nc] === p) {
+          count++; nr += d2[0]; nc += d2[1];
+        }
+
+        if (count >= 4) return true;
+      }
+      return false;
+    }
+
+    /* ==========================================================================
+       GAME 4: DOTS & BOXES ENGINE
+       ========================================================================== */
+    const DOTS_SIZE = 4; // 4x4 Boxes -> 5x5 Dots
+    let dotsState = {
+      hLines: [], // (GRID+1) x GRID
+      vLines: [], // GRID x (GRID+1)
+      boxes: [],   // GRID x GRID owners (0=none, 1=P1, 2=P2)
+      p1Score: 0,
+      p2Score: 0
+    };
+
+    function initDots() {
+      const g = DOTS_SIZE;
+      dotsState.hLines = Array(g + 1).fill(null).map(() => Array(g).fill(0));
+      dotsState.vLines = Array(g).fill(null).map(() => Array(g + 1).fill(0));
+      dotsState.boxes = Array(g).fill(null).map(() => Array(g).fill(0));
+      dotsState.p1Score = 0;
+      dotsState.p2Score = 0;
+
+      document.getElementById('p1-subtext').innerText = 'Box Claims';
+      document.getElementById('p2-subtext').innerText = 'Box Claims';
+
+      document.getElementById('game-info').innerText = 'Dots & Boxes - Complete Squares to Score';
+      document.getElementById('game-extra-controls').innerHTML = '';
+      
+      updateDotsScoreDisplay();
+      renderDotsBoard();
+      document.getElementById('move-status').innerText = 'Dots & Boxes ready.';
+    }
+
+    function updateDotsScoreDisplay() {
+      document.getElementById('graveyard').innerHTML = `
+        <span class="text-cyan-400 font-bold">${state.p1Name}: ${dotsState.p1Score} Boxes</span>
+        <span class="text-slate-600">|</span>
+        <span class="text-pink-500 font-bold">${state.p2Name}: ${dotsState.p2Score} Boxes</span>
+      `;
+    }
+
+    function renderDotsBoard() {
+      const stage = document.getElementById('game-stage');
+      const g = DOTS_SIZE;
+      
+      let html = `<div class="glass-card p-4 rounded-3xl bg-slate-900/90 border border-slate-700 shadow-2xl max-w-[380px] w-full flex flex-col items-center">`;
+
+      for (let r = 0; r <= g; r++) {
+        // Horizontal lines row
+        html += `<div class="flex items-center">`;
+        for (let c = 0; c < g; c++) {
+          // Dot
+          html += `<div class="w-3.5 h-3.5 rounded-full bg-slate-300 shadow-md"></div>`;
+          // Line H
+          const owner = dotsState.hLines[r][c];
+          let lineClass = 'line-h w-12 sm:w-16 h-2 bg-slate-800 rounded-full mx-0.5';
+          if (owner === 1) lineClass += ' line-p1 claimed';
+          else if (owner === 2) lineClass += ' line-p2 claimed';
+
+          html += `<div onclick="claimDotLine('h', ${r}, ${c})" class="${lineClass}"></div>`;
+        }
+        // End Dot
+        html += `<div class="w-3.5 h-3.5 rounded-full bg-slate-300 shadow-md"></div>`;
+        html += `</div>`;
+
+        // Vertical lines & Boxes row (if not last row)
+        if (r < g) {
+          html += `<div class="flex items-center">`;
+          for (let c = 0; c <= g; c++) {
+            // Line V
+            const vOwner = dotsState.vLines[r][c];
+            let vClass = 'line-v h-12 sm:h-16 w-2 bg-slate-800 rounded-full my-0.5';
+            if (vOwner === 1) vClass += ' line-p1 claimed';
+            else if (vOwner === 2) vClass += ' line-p2 claimed';
+
+            html += `<div onclick="claimDotLine('v', ${r}, ${c})" class="${vClass}"></div>`;
+
+            // Box Content (if not last col)
+            if (c < g) {
+              const bOwner = dotsState.boxes[r][c];
+              let boxBg = 'w-12 sm:w-16 h-12 sm:h-16 flex items-center justify-center font-heading font-black text-xl';
+              let boxText = '';
+              if (bOwner === 1) {
+                boxBg += ' bg-cyan-500/20 text-cyan-400 animate-pop';
+                boxText = 'P1';
+              } else if (bOwner === 2) {
+                boxBg += ' bg-pink-500/20 text-pink-500 animate-pop';
+                boxText = 'P2';
+              }
+              html += `<div class="${boxBg}">${boxText}</div>`;
+            }
+          }
+          html += `</div>`;
+        }
+      }
+
+      html += `</div>`;
+      stage.innerHTML = html;
+    }
+
+    function claimDotLine(type, r, c) {
+      if (type === 'h' && dotsState.hLines[r][c] !== 0) return;
+      if (type === 'v' && dotsState.vLines[r][c] !== 0) return;
+
+      soundMove();
+      if (type === 'h') dotsState.hLines[r][c] = state.turn;
+      else dotsState.vLines[r][c] = state.turn;
+
+      // Check if any boxes were completed
+      const boxesCompleted = checkCompletedBoxes();
+
+      if (boxesCompleted > 0) {
+        soundCapture();
+        if (state.turn === 1) dotsState.p1Score += boxesCompleted;
+        else dotsState.p2Score += boxesCompleted;
+
+        updateDotsScoreDisplay();
+
+        // Check total completed
+        const totalBoxes = DOTS_SIZE * DOTS_SIZE;
+        if (dotsState.p1Score + dotsState.p2Score === totalBoxes) {
+          renderDotsBoard();
+          let winner = 0;
+          if (dotsState.p1Score > dotsState.p2Score) winner = 1;
+          else if (dotsState.p2Score > dotsState.p1Score) winner = 2;
+          triggerVictory(winner, `Final Score: ${dotsState.p1Score} - ${dotsState.p2Score}`);
+          return;
+        }
+
+        // Keep turn if completed box
+        renderDotsBoard();
+        return;
+      }
+
+      switchTurn();
+      renderDotsBoard();
+    }
+
+    function checkCompletedBoxes() {
+      const g = DOTS_SIZE;
+      let newlyCompleted = 0;
+
+      for (let r = 0; r < g; r++) {
+        for (let c = 0; c < g; c++) {
+          if (dotsState.boxes[r][c] === 0) {
+            const top = dotsState.hLines[r][c] !== 0;
+            const bottom = dotsState.hLines[r + 1][c] !== 0;
+            const left = dotsState.vLines[r][c] !== 0;
+            const right = dotsState.vLines[r][c + 1] !== 0;
+
+            if (top && bottom && left && right) {
+              dotsState.boxes[r][c] = state.turn;
+              newlyCompleted++;
+            }
+          }
+        }
+      }
+      return newlyCompleted;
+    }
+
+    /* ==========================================================================
+       GAME 5: GOMOKU ENGINE (Five in a Row)
+       ========================================================================== */
+    const GOMOKU_SIZE = 10;
+    let gomokuBoard = [];
+
+    function initGomoku() {
+      gomokuBoard = Array(GOMOKU_SIZE).fill(null).map(() => Array(GOMOKU_SIZE).fill(0));
+
+      document.getElementById('p1-subtext').innerText = 'Cyan Stones';
+      document.getElementById('p2-subtext').innerText = 'Pink Stones';
+
+      document.getElementById('game-info').innerText = 'Gomoku - Align 5 Stones in a Row';
+      document.getElementById('game-extra-controls').innerHTML = '';
+      document.getElementById('graveyard').innerHTML = `<span class="text-slate-400">Place stones to get 5 consecutive pieces.</span>`;
+
+      renderGomokuBoard();
+      document.getElementById('move-status').innerText = 'Gomoku ready.';
+    }
+
+    function renderGomokuBoard() {
+      const stage = document.getElementById('game-stage');
+      
+      let html = `<div class="glass-card p-2 sm:p-3 rounded-2xl bg-slate-900/90 border border-slate-700 shadow-2xl max-w-[420px] w-full aspect-square">`;
+      html += `<div class="grid grid-cols-10 gap-1 w-full h-full">`;
+
+      for (let r = 0; r < GOMOKU_SIZE; r++) {
+        for (let c = 0; c < GOMOKU_SIZE; c++) {
+          const val = gomokuBoard[r][c];
+          let stoneInner = '';
+
+          if (val === 1) {
+            stoneInner = `<div class="w-full h-full rounded-full bg-cyan-400 shadow-md shadow-cyan-500/50 animate-pop"></div>`;
+          } else if (val === 2) {
+            stoneInner = `<div class="w-full h-full rounded-full bg-pink-500 shadow-md shadow-pink-500/50 animate-pop"></div>`;
+          }
+
+          html += `
+            <button onclick="placeGomokuStone(${r}, ${c})" class="bg-slate-800/80 hover:bg-slate-700/80 rounded-lg p-1 flex items-center justify-center transition-colors">
+              ${stoneInner}
+            </button>
+          `;
+        }
+      }
+
+      html += `</div></div>`;
+      stage.innerHTML = html;
+    }
+
+    function placeGomokuStone(r, c) {
+      if (gomokuBoard[r][c] !== 0) return;
+
+      soundMove();
+      gomokuBoard[r][c] = state.turn;
+
+      if (checkGomokuWin(r, c)) {
+        renderGomokuBoard();
+        triggerVictory(state.turn, 'Aligned 5 in a row!');
+        return;
+      }
+
+      if (gomokuBoard.every(row => row.every(cell => cell !== 0))) {
+        renderGomokuBoard();
+        triggerVictory(0, 'Board is completely full!');
+        return;
+      }
+
+      switchTurn();
+      renderGomokuBoard();
+    }
+
+    function checkGomokuWin(r, c) {
+      const p = gomokuBoard[r][c];
+      const directions = [
+        [[0,1], [0,-1]],  // Horizontal
+        [[1,0], [-1,0]],  // Vertical
+        [[1,1], [-1,-1]], // Diagonal Positive
+        [[1,-1], [-1,1]]  // Diagonal Negative
+      ];
+
+      for (const [d1, d2] of directions) {
+        let count = 1;
+        // Direction 1
+        let nr = r + d1[0], nc = c + d1[1];
+        while (nr >= 0 && nr < GOMOKU_SIZE && nc >= 0 && nc < GOMOKU_SIZE && gomokuBoard[nr][nc] === p) {
+          count++; nr += d1[0]; nc += d1[1];
+        }
+        // Direction 2
+        nr = r + d2[0]; nc = c + d2[1];
+        while (nr >= 0 && nr < GOMOKU_SIZE && nc >= 0 && nc < GOMOKU_SIZE && gomokuBoard[nr][nc] === p) {
+          count++; nr += d2[0]; nc += d2[1];
+        }
+
+        if (count >= 5) return true;
+      }
+      return false;
+    }
+
+    /* ==========================================================================
+       GAME SWITCHER & APPLICATION INITIALIZATION
+       ========================================================================== */
+    function switchGame(gameKey) {
+      soundClick();
+      state.activeGame = gameKey;
+      state.turn = 1;
+      state.moveCount = 0;
+      state.gameStartTime = Date.now();
+
+      // Highlight Active Tab
+      document.querySelectorAll('.game-tab').forEach(tab => {
+        tab.classList.remove('bg-cyan-500/20', 'text-cyan-300', 'border', 'border-cyan-400/40');
+        tab.classList.add('text-slate-400');
+      });
+
+      const activeTab = document.getElementById(`tab-${gameKey}`);
+      if (activeTab) {
+        activeTab.classList.add('bg-cyan-500/20', 'text-cyan-300', 'border', 'border-cyan-400/40');
+        activeTab.classList.remove('text-slate-400');
+      }
+
+      resetTimer();
+      updateUI();
+
+      if (gameKey === 'chess') initChess();
+      else if (gameKey === 'tictactoe') initTicTacToe();
+      else if (gameKey === 'connect4') initConnect4();
+      else if (gameKey === 'dots') initDots();
+      else if (gameKey === 'gomoku') initGomoku();
+    }
+
+    function resetCurrentGame() {
+      switchGame(state.activeGame);
+    }
+
+    // Window Load Event Listener
+    window.onload = function () {
+      switchGame('chess');
+    };
+  </script>
+</body>
+</html>
